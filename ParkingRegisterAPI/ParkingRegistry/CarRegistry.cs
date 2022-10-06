@@ -2,22 +2,29 @@
 
 namespace ParkingRegisterAPI.ParkingRegistry
 {
-    public class CarRegistry
+    public interface ICarRegistry
     {
-        private static Dictionary<string, Car> __cars { get; set; } = new Dictionary<string, Car>();
+        Car GetCar(string carNumber);
+        void RegisterCar(Car car);
+        void DeregisterCar(string carNumber);
+    }
 
-        public static Car GetCar(string carNumber)
+    public class CarRegistry : ICarRegistry
+    {
+        private Dictionary<string, Car> __cars { get; set; } = new Dictionary<string, Car>();
+
+        public Car GetCar(string carNumber)
         {
             if (!__cars.ContainsKey(carNumber)) return null;
             return __cars[carNumber];
         }
 
-        public static void RegisterCar(Car car)
+        public void RegisterCar(Car car)
         {
             __cars[car.Number] = car;
         }
 
-        public static void DeregisterCar(string carNumber)
+        public void DeregisterCar(string carNumber)
         {
             __cars.Remove(carNumber);
         }

@@ -2,11 +2,32 @@
 
 namespace ParkingRegisterAPI.ParkingRegistry
 {
-    public class SlotRegistry
+    public interface ISlotRegistry
     {
+        string FindEmptySlotNumber();
+        void ParkCar(string slotNumber, Car car);
+        void UnparkCar(string slotNumber);
+        Slot GetSlot(string slotNumber);
+    }
+
+    public class LotSizeInfo
+    {
+        protected static int _numberOfLots;
         public static void SetupLots(int numberOfLots)
         {
-            for (int i = 1; i <= numberOfLots; i++)
+            _numberOfLots = numberOfLots;
+        }
+
+    }
+
+
+    public class SlotRegistry : LotSizeInfo, ISlotRegistry
+    {
+        private Dictionary<string, Slot> __slots { get; set; } = new Dictionary<string, Slot>();
+
+        public SlotRegistry()
+        {
+            for (int i = 1; i <= _numberOfLots; i++)
             {
                 Slot lot = new Slot
                 {
@@ -16,24 +37,22 @@ namespace ParkingRegisterAPI.ParkingRegistry
             }
         }
 
-        private static Dictionary<string, Slot> __slots { get; set; } = new Dictionary<string, Slot>();
-
-        public static string FindEmptySlotNumber()
+        public string FindEmptySlotNumber()
         {
             return __slots.FirstOrDefault(lotKvp => lotKvp.Value.IsEmpty()).Key;
         }
 
-        public static void ParkCar(string slotNumber, Car car)
+        public void ParkCar(string slotNumber, Car car)
         {
             __slots[slotNumber].ParkCar(car);
         }
 
-        public static void UnparkCar(string slotNumber)
+        public void UnparkCar(string slotNumber)
         {
             __slots[slotNumber].UnparkCar();
         }
 
-        public static Slot GetSlot(string slotNumber)
+        public Slot GetSlot(string slotNumber)
         {
             if (!__slots.ContainsKey(slotNumber)) return null;
             return __slots[slotNumber];

@@ -12,6 +12,16 @@ namespace ParkingRegisterAPI.Controllers
         private const int __MAXREQUESTS = 10;
         private const int __TIMEWINDOW = 10;
 
+        private readonly string __slotNotFoundMsg = "no slot exists";
+        private readonly string __carNotFoundMsg = "car not found";
+        private readonly string __carparkFullMsg = "car park is full";
+        private readonly string __invalidCarNumMsg = "no valid car number given";
+        private readonly string __carAlreadyInSlotMsg = "car is already parked in a slot";
+        private readonly string __slotIsEmptyPlaceholderMsg = "slot {0} has no car";
+        private readonly string __slotHasNoCarPlaceholderMsg = "slot {0} does not have car with number {1}";
+        private readonly string __slotNumInvalidMsg = "slot number is invalid";
+        private readonly string __carSlotNumInvalidMsg = "car and slot numbers are invalid";
+
         private ISlotRegistry __slotRegistry;
         private ICarRegistry __carRegistry;
 
@@ -25,10 +35,11 @@ namespace ParkingRegisterAPI.Controllers
         [LimitRequests(MaxRequests = __MAXREQUESTS, TimeWindow = __TIMEWINDOW)]
         public ParkCarResponse ParkCar(string carNumber)
         {
-            if (__carRegistry.GetCar(carNumber) != null) return new ParkCarResponse { ErrorMesssage = "car is already parked in a lot" };
+            if (string.IsNullOrWhiteSpace(carNumber)) return new ParkCarResponse { ErrorMessage = __invalidCarNumMsg };
+            if (__carRegistry.GetCar(carNumber) != null) return new ParkCarResponse { ErrorMessage = __carAlreadyInSlotMsg };
             // find lot and park if exists
             string slotNumber = __slotRegistry.FindEmptySlotNumber();
-            if (slotNumber == null) return new ParkCarResponse { ErrorMesssage = "car park is full" };
+            if (slotNumber == null) return new ParkCarResponse { ErrorMessage = __carparkFullMsg };
             // register car and it's lot
             Car newCar = new Car
             {
@@ -44,9 +55,10 @@ namespace ParkingRegisterAPI.Controllers
         [LimitRequests(MaxRequests = __MAXREQUESTS, TimeWindow = __TIMEWINDOW)]
         public UnparkCarResponse UnparkCar(string slotNumber)
         {
+            if (string.IsNullOrWhiteSpace(slotNumber)) return new UnparkCarResponse { ErrorMessage = __slotNumInvalidMsg };
             Slot slot = __slotRegistry.GetSlot(slotNumber);
-            if (slot == null) return new UnparkCarResponse { ErrorMesssage = "no slot exists" };
-            if (slot.IsEmpty()) return new UnparkCarResponse { ErrorMesssage = $"slot {slotNumber} has no car" };
+            if (slot == null) return new UnparkCarResponse { ErrorMessage = __slotNotFoundMsg };
+            if (slot.IsEmpty()) return new UnparkCarResponse { ErrorMessage = String.Format(__slotIsEmptyPlaceholderMsg, slotNumber) };
             string carNumber = slot.Car.Number;
             __slotRegistry.UnparkCar(slotNumber);
             __carRegistry.DeregisterCar(carNumber);
@@ -57,18 +69,19 @@ namespace ParkingRegisterAPI.Controllers
         [LimitRequests(MaxRequests = __MAXREQUESTS, TimeWindow = __TIMEWINDOW)]
         public CarSlotInfoResponse CarSlotInfo(string? slotNumber, string? carNumber)
         {
-            if (string.IsNullOrEmpty(slotNumber))
+            if (string.IsNullOrWhiteSpace(slotNumber))
             {
+                if (string.IsNullOrWhiteSpace(carNumber)) return new CarSlotInfoResponse { ErrorMessage = __carSlotNumInvalidMsg };
                 Car car = __carRegistry.GetCar(carNumber);
-                if (car == null) return new CarSlotInfoResponse { ErrorMessage = "car not found" };
+                if (car == null) return new CarSlotInfoResponse { ErrorMessage = __carNotFoundMsg };
                 return new CarSlotInfoResponse { SlotNumber = car.Slot.Number, CarNumber = carNumber };
             }
 
             Slot slot = __slotRegistry.GetSlot(slotNumber);
-            if (slot == null) return new CarSlotInfoResponse { ErrorMessage = "slot not found" };
-            string carNumberFromSlot = slot.IsEmpty() ? "" : slot.Car.Number;
+            if (slot == null) return new CarSlotInfoResponse { ErrorMessage = __slotNotFoundMsg };
+            string carNumberFromSlot = slot.IsEmpty() ? null : slot.Car.Number;
             if (!string.IsNullOrEmpty(carNumber) && carNumberFromSlot != carNumber) 
-                return new CarSlotInfoResponse { ErrorMessage = $"slot {slot.Number} does not have car with number {carNumber}" };
+                return new CarSlotInfoResponse { ErrorMessage = String.Format(__slotHasNoCarPlaceholderMsg, slot.Number, carNumber) };
             return new CarSlotInfoResponse { SlotNumber = slotNumber, CarNumber = carNumberFromSlot };
         }
     }

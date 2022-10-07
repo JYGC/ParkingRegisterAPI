@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,21 +15,24 @@ namespace ParkingRegisterAPI.Tests
         {
             using var host = await new HostBuilder().ConfigureWebHost(webBuilder =>
             {
-                webBuilder = WebHost.CreateDefaultBuilder();
-                webBuilder
-                    .UseTestServer()
-                    .ConfigureServices(services =>
-                    {
-                        services.AddDistributedMemoryCache();
-                    })
-                    .Configure(app =>
-                    {
-                        app.UseRateLimiting();
-                    });
+                webBuilder.UseTestServer().ConfigureServices(services =>
+                {
+                    services.AddControllers();
+                    services.AddDistributedMemoryCache();
+                    services.AddRouting();
                 })
-                .StartAsync();
+                .Configure(app =>
+                {
+                    app.UseRateLimiting();
+                    app.UseRouting();
+                    app.UseEndpoints(endpoints =>
+                    {
+                        endpoints.MapControllers();
+                    });
+                });
+            }).StartAsync();
 
-            var response = await host.GetTestClient().GetAsync("/");
+            var response = await host.GetTestClient().GetAsync("/ParkingRegister/CarSlotInfo");
             Assert.NotEqual(HttpStatusCode.NotFound, response.StatusCode);
             //__controller.CarSlotInfo("3333", "3333");
             //__controller.CarSlotInfo("3333", "3333");
